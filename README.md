@@ -53,7 +53,7 @@ Install cog
 
 ## Reminder
 **"Forked" from [RemindMe](https://github.com/Twentysix26/Red-Cogs/)**  
-Reminds you, or someone else after a specific time amount in a channel.  
+Reminds you, or someone else after a specific time amount in a channel. Needs **python-dateutil** now!  
 Install cog  
 `[p]cog install atsp reminder`
 
@@ -67,7 +67,7 @@ Install cog
 
 ## RSS
 **"Forked" from [RSS](https://github.com/tekulvw/Squid-Plugins)**  
-Posts new feed entries in the desired channels. The fork includes filtering for keywords in the title.    
+Posts new feed entries in the desired channels. The fork includes filtering for keywords in the title and removing HTML-tags in the description. Needs **BeautifulSoup** now!    
 Install cog  
 `[p]cog install atsp rss`
 

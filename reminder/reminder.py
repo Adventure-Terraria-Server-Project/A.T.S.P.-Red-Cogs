@@ -21,10 +21,10 @@ class Reminder:
     async def remind(self, ctx, user: str, time_unit: str, *, text: str):
         """Sends you <text> when the time is up
 
-        Accepts: minutes, hours, days, weeks, month
+        Accepts: m, h, d, M, w, y
         Example:
-        [p]remind me 3 days Have sushi with Asu and JennJenn
-        [p]remind Asu 2 months Buy JennJenn a Coke"""
+        [p]remind me 3d6h Have sushi with Asu and JennJenn
+        [p]remind Asu 2M2w Buy JennJenn a Coke"""
         if not self.reminders[0]["CHANNEL"]:
             await self.bot.say("Set a channel first `remindset #channel`!")
             return
@@ -43,12 +43,11 @@ class Reminder:
         
         future_matches = re.findall(r'\d{1,2}\w', time_unit)
         unit_convert_dict = {
-            's': 'seconds',
             'm': 'minutes',
             'h': 'hours',
+            'd': 'days',
             'M': 'months',
             'w': 'weeks',
-            'd': 'days',
             'y': 'years'
         }
         

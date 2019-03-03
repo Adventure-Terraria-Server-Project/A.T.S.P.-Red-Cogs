@@ -6,7 +6,6 @@ import asyncio
 import string
 import logging
 import copy
-from bs4 import BeautifulSoup
 
 from cogs.utils.dataIO import fileIO
 from cogs.utils.chat_formatting import *
@@ -16,6 +15,12 @@ try:
     import feedparser
 except:
     feedparser = None
+
+try:
+    from bs4 import BeautifulSoup
+except:
+    BeautifulSoup = None
+
 
 log = logging.getLogger("data/RSS/feeds.log")
 
@@ -355,6 +360,8 @@ class RSS(object):
 def setup(bot):
     if feedparser is None:
         raise NameError("You need to run `pip3 install feedparser`")
+    if BeautifulSoup is None:
+        raise NameError("You need to run `pip3 install beautifulsoup4`")
     n = RSS(bot)
     bot.add_cog(n)
     bot.loop.create_task(n.read_feeds())
