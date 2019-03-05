@@ -16,7 +16,7 @@ class Reminder:
     def __init__(self, bot):
         self.bot = bot
         self.reminders = fileIO("data/reminder/reminders.json", "load")
-        
+
     @commands.command(pass_context=True)
     async def remind(self, ctx, user: str, time_unit: str, *, text: str):
         """Sends you <text> when the time is up
@@ -40,7 +40,7 @@ class Reminder:
             await self.bot.say("The user {0} doesn't exist!".format(user))
             return
         s = ""
-        
+
         future_matches = re.findall(r'\d{1,2}\w', time_unit)
         unit_convert_dict = {
             'm': 'minutes',
@@ -50,17 +50,17 @@ class Reminder:
             'w': 'weeks',
             'y': 'years'
         }
-        
+
         delta = relativedelta()
         for m in future_matches:
-           _, unit = re.split('\d+', m)    
+           _, unit = re.split('\d+', m)
            delta_unit = unit_convert_dict.get(unit, 'minutes')
-           delta += relativedelta(**{delta_unit: int(re.match('\d+', m).group())}) 
-        future = (datetime.datetime.now() + delta).timestamp()
-        
-        self.reminders.append({"ID": author.id, "FUTURE": future, "TEXT": text})
+           delta += relativedelta(**{delta_unit: int(re.match('\d+', m).group())})
+        future = (datetime.datetime.now() + delta)
+
+        self.reminders.append({"ID": author.id, "FUTURE": future.timestamp(), "TEXT": text})
         logger.info("{} ({}) set a reminder.".format(author.name, author.id))
-        await self.bot.say("I will remind {} that in {}.".format(author.name, time_unit))
+        await self.bot.say("I will remind {} that in {}.".format(author.name, future.strftime('%c')))
         fileIO("data/reminder/reminders.json", "save", self.reminders)
 
     @checks.is_owner()
