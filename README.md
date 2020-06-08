@@ -1,7 +1,7 @@
 # A.T.S.P.-Red-Cogs
 Plugins for the [Discord bot Red](https://github.com/Twentysix26/Red-DiscordBot)  
 These cogs are either self-coded or modified from others. I'll definitely link to source.  
-These cogs are being used on the [A.T.S.P](https://yamahi.eu) [Discord Server](http://s.yamahi.eu/chat) for several different tasks.
+These cogs are being used on the [A.T.S.P.](https://yamahi.eu) [Discord Server](https://s.yamahi.eu/chat) for several different tasks.
 
 Install repo  
 `[p]cog repo add atsp https://github.com/Nama/A.T.S.P.-Red-Cogs`  
