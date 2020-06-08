@@ -26,6 +26,7 @@ Install cog
 ## Messages
 Greet new members and use a broadcast with a delay on a channel  
 Allows only Administrators to use the commands.  
+`[p]msgs start` is autostarted  
 Install cog  
 `[p]cog install atsp messages`
 
@@ -62,8 +63,6 @@ Install cog
   *Removes all your active reminders*
 * remind  
   *Either reminds you "me" or reminds another user. You can use their actual nick, the loginname with and without the #Numbers or just @Mention.*
-* remindset  
-  *Owner only - Sets a channel to remind you in.*
 
 ## RSS
 **"Forked" from [RSS](https://github.com/tekulvw/Squid-Plugins)**  

@@ -10,6 +10,7 @@ import logging
 import datetime
 from dateutil.relativedelta import relativedelta
 
+
 class Reminder:
     """Never forget anything anymore."""
 
@@ -25,9 +26,6 @@ class Reminder:
         Example:
         [p]remind me 3d6h Have sushi with Asu and JennJenn
         [p]remind Asu 2M2w Buy JennJenn a Coke"""
-        if not self.reminders[0]["CHANNEL"]:
-            await self.bot.say("Set a channel first `remindset #channel`!")
-            return
         author = ""
         notme = ctx.message.server.get_member_named(user)
         if user == 'me':  # There might be a problem if a user exists with that name
@@ -58,9 +56,9 @@ class Reminder:
            delta += relativedelta(**{delta_unit: int(re.match('\d+', m).group())})
         future = (datetime.datetime.now() + delta)
 
-        self.reminders.append({"ID": author.id, "FUTURE": future.timestamp(), "TEXT": text})
+        self.reminders.append({"ID": author.id, "server": ctx.message.server.id, "channel": ctx.message.channel.id, "FUTURE": future.timestamp(), "TEXT": text})
         logger.info("{} ({}) set a reminder.".format(author.name, author.id))
-        await self.bot.say("I will remind {} that in {}.".format(author.name, future.strftime('%c')))
+        await self.bot.say("I will remind {} that on {}.".format(author.name, future.strftime('%c')))
         fileIO("data/reminder/reminders.json", "save", self.reminders)
 
     @checks.is_owner()
@@ -77,7 +75,7 @@ class Reminder:
         """Removes all your upcoming notifications"""
         author = ctx.message.author
         to_remove = []
-        for reminder in self.reminders[1:]:
+        for reminder in self.reminders:
             if reminder["ID"] == author.id:
                 to_remove.append(reminder)
 
@@ -91,16 +89,15 @@ class Reminder:
 
     async def check_reminders(self):
         await asyncio.sleep(60)
-        serverid = self.reminders[0]["SERVER"]
-        for server in self.bot.servers:
-            if server.id == serverid:
-                channel = server.get_channel(self.reminders[0]["CHANNEL"])
-                break
         while self is self.bot.get_cog("Reminder"):
             to_remove = []
-            for reminder in self.reminders[1:]:
+            for reminder in self.reminders:
                 if reminder["FUTURE"] <= int(time.time()):
                     try:
+                        for server in self.bot.servers:
+                            if server.id == reminder["server"]:
+                                channel = server.get_channel(reminder["channel"])
+                                break
                         await self.bot.send_message(channel, discord.User(id=reminder["ID"]).mention + " remember to {}".format(reminder["TEXT"]))
                     except (discord.errors.Forbidden, discord.errors.NotFound):
                         to_remove.append(reminder)
@@ -125,7 +122,7 @@ def check_files():
     f = "data/reminder/reminders.json"
     if not fileIO(f, "check"):
         print("Creating empty reminders.json...")
-        fileIO(f, "save", [{"channel": ""}])
+        fileIO(f, "save", [])
 
 
 def setup(bot):

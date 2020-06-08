@@ -33,7 +33,7 @@ class ToDo:
                         embed = discord.Embed(description=page)
                         embed.title = '{}\'s ToDo of {} things'.format(nick, len(self.config[user]))
                         embed.colour = discord.Colour.green()
-                        embed.set_footer(text='Part {}'.format(page_index), icon_url='https://yamahi.eu/favicon.ico')
+                        embed.set_footer(text='Part {}'.format(page_index), icon_url='https://yamahi.eu/favicon-512.png')
                         await self.bot.say(embed=embed)
                         page_index += 1
                 else:

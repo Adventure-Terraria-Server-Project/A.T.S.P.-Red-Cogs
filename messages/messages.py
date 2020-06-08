@@ -4,6 +4,7 @@ from asyncio import sleep
 from cogs.utils import checks
 from discord.ext import commands
 from cogs.utils.dataIO import dataIO
+from cogs.utils.settings import Settings
 from cogs.utils.chat_formatting import pagify
 
 
@@ -15,6 +16,17 @@ class Messages:
         self.bc = False
         self.config_file = 'data/messages/messages.json'
         self.config = dataIO.load_json(self.config_file)
+        self.task = self.bot.loop.create_task(self.startup())
+
+    def __unload(self):
+        self.terminate = True
+        self.task.cancel()
+
+    async def startup(self):
+        await sleep(60)
+        await self.bot.wait_until_ready()
+        channel = self.bot.get_channel(self.config['chan'])
+        await self.msg(channel)
 
     # Welcome-Code
     @commands.group(pass_context=True)
@@ -47,23 +59,26 @@ class Messages:
 
     # Broadcast-Code
     @commands.group(pass_context=True)
-    @checks.admin_or_permissions(administrator=True)
+    @checks.mod_or_permissions(manage_messages=True)
     async def msgs(self, cmd):
         '''Manage periodic messages (broadcast)'''
         if cmd.invoked_subcommand is None:
             await self.bot.send_cmd_help(cmd)
 
     @msgs.command(pass_context=True)
-    @checks.admin_or_permissions(administrator=True)
+    @checks.mod_or_permissions(manage_messages=True)
     async def stop(self, cmd):
         '''Stop the broadcast'''
         self.bc = False
 
     @msgs.command(pass_context=True)
-    @checks.admin_or_permissions(administrator=True)
+    @checks.mod_or_permissions(manage_messages=True)
     async def start(self, cmd):
-        '''Start the broadcast'''
         channel = cmd.message.server.get_channel(self.config['chan'])
+        await self.msg(channel)
+
+    async def msg(self, channel):
+        '''Start the broadcast'''
         if not self.bc:
             if len(self.config['bc']) > 0:
                 if channel:
@@ -104,7 +119,7 @@ class Messages:
                 embed = discord.Embed(description=msg)
                 embed.title = 'Broadcast Messages'
                 embed.colour = discord.Colour.blue()
-                embed.set_footer(text='Channel: #{1} - Delay: {0} seconds'.format(self.config['delay'], self.config['chan']), icon_url='https://yamahi.eu/favicon.ico')
+                embed.set_footer(text='Channel: #{1} - Delay: {0} seconds'.format(self.config['delay'], cmd.message.server.get_channel(self.config['chan'])), icon_url='https://yamahi.eu/favicon-512.png')
                 await self.bot.say(embed=embed)
         else:
             await self.bot.say('You didn\'t set any messages...')

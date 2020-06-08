@@ -21,8 +21,16 @@ try:
 except:
     BeautifulSoup = None
 
+debug = False
 
-log = logging.getLogger("data/RSS/feeds.log")
+log = logging.getLogger("rss")
+if debug:
+    log.setLevel(logging.DEBUG)
+else:
+    log.setLevel(logging.CRITICAL)
+handler = logging.FileHandler(filename='data/RSS/feeds.log', encoding='utf-8', mode='a')
+handler.setFormatter(logging.Formatter('%(asctime)s %(message)s', datefmt="[%d/%m/%Y %H:%M]"))
+log.addHandler(handler)
 
 
 class Settings(object):
@@ -300,10 +308,9 @@ class RSS(object):
             return None
 
         rss = feedparser.parse(html)
-        rss.entries[0]['description'] = BeautifulSoup(rss.entries[0]['description'].replace('<br>', '\n'), 'html5lib').get_text()
 
         if rss.bozo:
-            log.debug("Feed at url below is bad.\n\t".format(url))
+            log.debug("Feed at url below is bad.\n\t {}".format(url))
             return None
 
         try:
@@ -316,6 +323,7 @@ class RSS(object):
         if curr_title != last_title:
             log.debug("New entry found for feed {} on sid {}".format(
                 name, server))
+            rss.entries[0]['description'] = BeautifulSoup(rss.entries[0]['description'].replace('<br>', '\n'), 'html5lib').get_text()
             latest = rss.entries[0]
             to_fill = string.Template(template)
 
@@ -342,6 +350,7 @@ class RSS(object):
         await self.bot.wait_until_ready()
         while self == self.bot.get_cog('RSS'):
             feeds = self.feeds.get_copy()
+            log.debug("loop")
             for server in feeds:
                 for chan_id in feeds[server]:
                     for name, items in feeds[server][chan_id].items():
