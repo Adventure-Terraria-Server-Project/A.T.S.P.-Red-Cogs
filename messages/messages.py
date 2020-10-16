@@ -1,188 +1,181 @@
-import os
 import discord
-from asyncio import sleep
-from cogs.utils import checks
-from discord.ext import commands
-from cogs.utils.dataIO import dataIO
-from cogs.utils.settings import Settings
-from cogs.utils.chat_formatting import pagify
+from asyncio import sleep, create_task
+from redbot.core import commands
+from redbot.core import Config
+from redbot.core import checks
+from redbot.core.utils import AsyncIter
+from redbot.core.utils.chat_formatting import pagify
+from redbot.core.utils import predicates
 
 
-class Messages:
+class Messages(commands.Cog):
     '''Welcome message and periodic messages'''
 
     def __init__(self, bot):
         self.bot = bot
         self.bc = False
-        self.config_file = 'data/messages/messages.json'
-        self.config = dataIO.load_json(self.config_file)
-        self.task = self.bot.loop.create_task(self.startup())
+        self.config = Config.get_conf(self, identifier=847265238)
+        default_global = {
+            'bc': [],
+            'chan': '',
+            'delay': 300,
+            'welcome': ['chan', 'text']
+        }
+        self.config.register_global(**default_global)
+        create_task(self.startup())
 
-    def __unload(self):
+    def cog_unload(self):
         self.terminate = True
-        self.task.cancel()
+        self.bc = False
+        sleep(2)
 
     async def startup(self):
-        await sleep(60)
+        #await sleep(60)
         await self.bot.wait_until_ready()
-        channel = self.bot.get_channel(self.config['chan'])
-        await self.msg(channel)
+        chan = self.bot.get_channel(await self.config.chan())
+        await self.msg(chan)
+
+    async def msg_error(self, text):
+        for chan in await self.bot.get_owner_notification_destinations():
+            try:
+                await chan.send(text)
+            except discord.errors.Forbidden:
+                pass
 
     # Welcome-Code
-    @commands.group(pass_context=True)
+    @commands.group()
     @checks.admin_or_permissions(administrator=True)
-    async def welcome(self, cmd):
+    async def welcome(self, ctx):
         '''Set a channel and a message for new members'''
-        if cmd.invoked_subcommand is None:
-            await self.bot.send_cmd_help(cmd)
+        pass
 
     @welcome.command(name='chan', pass_context=True)
     @checks.admin_or_permissions(administrator=True)
-    async def wchan(self, cmd, channel: discord.Channel):
+    async def wchan(self, ctx, chan: discord.TextChannel):
         '''Set the channel for the welcome message'''
-        self.config['welcome'][0] = channel.id
-        dataIO.save_json(self.config_file, self.config)
-        await self.bot.say('The channel #{0} for Welcome is saved!'.format(channel.name))
+        async with self.config.welcome() as welcome:
+            welcome[0] = chan.id
+        await ctx.send(f'The channel #{chan.name} for Welcome is saved!')
 
     @welcome.command(pass_context=True)
     @checks.admin_or_permissions(administrator=True)
-    async def text(self, cmd, *, text: str):
+    async def text(self, ctx, *, text: str):
         '''Set the welcome message - put member.mention to mention the user'''
-        self.config['welcome'][1] = text
-        dataIO.save_json(self.config_file, self.config)
-        await self.bot.say('Welcome message saved!')
+        async with self.config.welcome() as welcome:
+            welcome[1] = text
+        await ctx.send('Welcome message saved!')
 
-    async def member_join(self, member):
-        if self.config['welcome'][0] and self.config['welcome'][1]:
-            channel = member.server.get_channel(self.config['welcome'][0])
-            await self.bot.send_message(channel, self.config['welcome'][1].replace('member.mention', member.mention))
+    @commands.Cog.listener()
+    async def on_member_join(self, member):
+        chanid, text = await self.config.welcome()
+        if chanid and text:
+            chan = self.bot.get_channel(chanid)
+            if chan:
+                await chan.send(text.replace('member.mention', member.mention))
 
     # Broadcast-Code
-    @commands.group(pass_context=True)
+    @commands.group()
     @checks.mod_or_permissions(manage_messages=True)
-    async def msgs(self, cmd):
+    async def msgs(self, ctx):
         '''Manage periodic messages (broadcast)'''
-        if cmd.invoked_subcommand is None:
-            await self.bot.send_cmd_help(cmd)
+        pass
 
-    @msgs.command(pass_context=True)
+    @msgs.command()
     @checks.mod_or_permissions(manage_messages=True)
-    async def stop(self, cmd):
+    async def stop(self, ctx):
         '''Stop the broadcast'''
         self.bc = False
 
     @msgs.command(pass_context=True)
     @checks.mod_or_permissions(manage_messages=True)
-    async def start(self, cmd):
-        channel = cmd.message.server.get_channel(self.config['chan'])
-        await self.msg(channel)
+    async def start(self, ctx):
+        chan = self.bot.get_channel(await self.config.chan())
+        await self.msg(chan)
 
-    async def msg(self, channel):
+    async def msg(self, chan):
         '''Start the broadcast'''
-        if not self.bc:
-            if len(self.config['bc']) > 0:
-                if channel:
-                    if self.config['delay']:
-                        self.bc = True
-                        while self.bc:
-                            for msg in self.config['bc']:
-                                if self.bc:
-                                    await self.bot.send_message(channel, ':loudspeaker: ' + msg)
-                                    for sec in range(self.config['delay']):
-                                        await sleep(1)
-                                        if not self.bc:
-                                            break
-                                else:
-                                    break
-                        await self.bot.say('Broadcast stopped!')
-                    else:
-                        await self.bot.say('You didn\'t set a delay!')
+        bc = await self.config.bc()
+        if self.bc:
+            await self.msg_error('Broadcast is already running!')
+            return
+        if len(bc) == 0:
+            await self.msg_error('You have no messages set...')
+            return
+        if not chan:
+            await self.msg_error('You didn\'t set a channel')
+            return
+        self.bc = True
+        while self.bc:
+            for msg in bc:
+                if self.bc:
+                    await chan.send(':loudspeaker: ' + msg)
+                    for sec in range(await self.config.delay()):
+                        await sleep(1)
+                        if not self.bc:
+                            break
                 else:
-                    await self.bot.say('You didn\'t set any channel')
-            else:
-                await self.bot.say('You have no messages set...')
-        else:
-            await self.bot.say('Broadcast is already running!')
+                    break
+        await self.msg_error('Broadcast stopped!')
 
     @msgs.command(pass_context=True)
     @checks.admin_or_permissions(administrator=True)
-    async def list(self, cmd):
+    async def list(self, ctx):
         '''List the Messages'''
         index = 0
-        if len(self.config['bc']) != 0:
+        bc = await self.config.bc()
+        if len(bc) != 0:
             msg = ''
-            for i in self.config['bc']:
-                msg += '*{0}*: {1}\n'.format(index, i)
+            for i in bc:
+                msg += f'*{index}*: {i}\n'
                 index += 1
             for page in pagify(msg):
-                user = cmd.message.author.nick or cmd.message.author.name
-                embed = discord.Embed(description=msg)
+                embed = discord.Embed(description=page)
                 embed.title = 'Broadcast Messages'
                 embed.colour = discord.Colour.blue()
-                embed.set_footer(text='Channel: #{1} - Delay: {0} seconds'.format(self.config['delay'], cmd.message.server.get_channel(self.config['chan'])), icon_url='https://yamahi.eu/favicon-512.png')
-                await self.bot.say(embed=embed)
+                chanid = await self.config.chan()
+                delay = await self.config.delay()
+                chan = self.bot.get_channel(chanid)
+                if chan:
+                    embed.set_footer(text=f'Channel: #{chan.name} - Delay: {delay} seconds', icon_url='https://yamahi.eu/favicon-512.png')
+                    await ctx.send(embed=embed)
+                else:
+                    ctx.send('No channel set.')
         else:
-            await self.bot.say('You didn\'t set any messages...')
+            await ctx.send('You didn\'t set any messages...')
 
     @msgs.command(name='chan', pass_context=True)
     @checks.admin_or_permissions(administrator=True)
-    async def bchan(self, cmd, channel: discord.Channel):
+    async def bchan(self, ctx, chan: discord.TextChannel):
         '''Set the channel for the broadcast'''
-        self.config['chan'] = channel.id
-        dataIO.save_json(self.config_file, self.config)
-        await self.bot.say('The channel #{0} for Broadcast is saved!'.format(channel.name))
+        await self.config.chan.set(chan.id)
+        await ctx.send(f'The channel {chan.mention} for Broadcast is saved!')
 
-    @msgs.command(pass_context=True)
+    @msgs.command()
     @checks.admin_or_permissions(administrator=True)
-    async def delay(self, cmd, seconds: int):
+    async def delay(self, ctx, seconds: int):
         '''Set the delay in seconds'''
-        dataIO.save_json(self.config_file, self.config)
-        await self.bot.say('Broadcast delay set to {0}!'.format(seconds))
+        await self.config.delay.set(seconds)
+        await ctx.send(f'Broadcast delay set to {seconds}!')
 
     @msgs.command(pass_context=True)
     @checks.admin_or_permissions(administrator=True)
-    async def add(self, cmd, *, text: str):
+    async def add(self, ctx, *, text: str):
         '''Add a message'''
         if self.bc:
             self.bc = False
-        self.config['bc'].append(text)
-        dataIO.save_json(self.config_file, self.config)
-        await self.bot.say('New Broadcast message added!')
+        async with self.config.bc() as bc:
+            bc.append(text)
+        await ctx.send('New Broadcast message added!')
 
-    @msgs.command(pass_context=True)
+    @msgs.command()
     @checks.admin_or_permissions(administrator=True)
-    async def rm(self, cmd, index: int):
+    async def rm(self, ctx, index: int):
         '''Remove a message'''
         try:
             if self.bc:
                 self.bc = False
-            self.config['bc'].pop(index)
-            fine = True
+            async with self.config.bc() as bc:
+                bc.pop(index)
+                await ctx.send('Broadcast message removed!')
         except IndexError:
-            fine = False
-        if fine:
-            dataIO.save_json(self.config_file, self.config)
-            await self.bot.say('Broadcast message removed!')
-        else:
-            await self.bot.say('The number was wrong...')
-
-
-def check_data():
-    path = 'data/messages'
-    if not os.path.exists(path):
-        print('First run setup...')
-        os.makedirs(path)
-    if not os.path.exists('data/messages/messages.json'):
-        config = dict()
-        config['chan'] = str()
-        config['delay'] = int()
-        config['bc'] = list()
-        config['welcome'] = list(['', ''])
-        dataIO.save_json('data/messages/messages.json', config)
-
-
-def setup(bot):
-    check_data()
-    b = Messages(bot)
-    bot.add_listener(b.member_join, 'on_member_join')
-    bot.add_cog(b)
+            await ctx.send('The number was wrong...')

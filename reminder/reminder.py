@@ -1,43 +1,53 @@
-import discord
-from discord.ext import commands
-from .utils.dataIO import fileIO
-from cogs.utils import checks
 import os
 import re
-import asyncio
+from asyncio import sleep, create_task
 import time
-import logging
 import datetime
 from dateutil.relativedelta import relativedelta
 
+import discord
+from discord.utils import get
+from redbot.core import commands
+from redbot.core import Config
+from redbot.core import checks
+from redbot.core.utils import AsyncIter
+from redbot.core.utils.chat_formatting import pagify
+from redbot.core.utils import predicates
 
-class Reminder:
-    """Never forget anything anymore."""
+
+class Reminder(commands.Cog):
+    '''Never forget anything anymore.'''
 
     def __init__(self, bot):
         self.bot = bot
-        self.reminders = fileIO("data/reminder/reminders.json", "load")
+        self.check = False
+        self.config = Config.get_conf(self, identifier=847265238)
+        default_user = {
+            'reminders': []
+        }
+        self.config.register_user(**default_user)
+        create_task(self.check_reminders())
+
+    def cog_unload(self):
+        self.check = False
+        time.sleep(2)
 
     @commands.command(pass_context=True)
     async def remind(self, ctx, user: str, time_unit: str, *, text: str):
-        """Sends you <text> when the time is up
+        '''Sends you <text> when the time is up
 
         Accepts: m, h, d, M, w, y
         Example:
         [p]remind me 3d6h Have sushi with Asu and JennJenn
-        [p]remind Asu 2M2w Buy JennJenn a Coke"""
-        author = ""
-        notme = ctx.message.server.get_member_named(user)
+        [p]remind Asu 2M2w Buy JennJenn a Coke'''
+
         if user == 'me':  # There might be a problem if a user exists with that name
-            author = ctx.message.author
-        elif notme:
-            author = notme
+            author = ctx.author
         else:
-            author = ctx.message.server.get_member(user[2:-1].replace("!", ""))
-        if not author:
-            await self.bot.say("The user {0} doesn't exist!".format(user))
-            return
-        s = ""
+            author = get(ctx.bot.get_all_members(), display_name=user)
+            if not author:
+                await ctx.send(f'The user {user} doesn\'t exist!')
+                return
 
         future_matches = re.findall(r'\d{1,2}\w', time_unit)
         unit_convert_dict = {
@@ -51,91 +61,43 @@ class Reminder:
 
         delta = relativedelta()
         for m in future_matches:
-           _, unit = re.split('\d+', m)
-           delta_unit = unit_convert_dict.get(unit, 'minutes')
-           delta += relativedelta(**{delta_unit: int(re.match('\d+', m).group())})
+            _, unit = re.split(r'\d+', m)
+            delta_unit = unit_convert_dict.get(unit, 'minutes')
+            delta += relativedelta(**{delta_unit: int(re.match(r'\d+', m).group())})
         future = (datetime.datetime.now() + delta)
 
-        self.reminders.append({"ID": author.id, "server": ctx.message.server.id, "channel": ctx.message.channel.id, "FUTURE": future.timestamp(), "TEXT": text})
-        logger.info("{} ({}) set a reminder.".format(author.name, author.id))
-        await self.bot.say("I will remind {} that on {}.".format(author.name, future.strftime('%c')))
-        fileIO("data/reminder/reminders.json", "save", self.reminders)
-
-    @checks.is_owner()
-    @commands.command(pass_context=True)
-    async def remindset(self, ctx, channel: discord.Channel):
-        """Set a channel in which to remind the users"""
-        self.reminders[0]["SERVER"] = ctx.message.server.id
-        self.reminders[0]["CHANNEL"] = channel.id
-        fileIO("data/reminder/reminders.json", "save", self.reminders)
-        await self.bot.say("Channel set!")
+        async with self.config.user(author).reminders() as reminders:
+            reminders.append(
+                {
+                    'future': future.timestamp(),
+                    'chan': ctx.channel.id,
+                    'text': text
+                }
+            )
+        await ctx.send(f'I will remind {author.name} that on {future.strftime("%c")}.')
 
     @commands.command(pass_context=True)
     async def forgetme(self, ctx):
-        """Removes all your upcoming notifications"""
-        author = ctx.message.author
-        to_remove = []
-        for reminder in self.reminders:
-            if reminder["ID"] == author.id:
-                to_remove.append(reminder)
-
-        if not to_remove == []:
-            for reminder in to_remove:
-                self.reminders.remove(reminder)
-            fileIO("data/reminder/reminders.json", "save", self.reminders)
-            await self.bot.say("All your notifications have been removed.")
-        else:
-            await self.bot.say("You don't have any upcoming notification.")
+        '''Removes all your upcoming notifications'''
+        await self.config.user(ctx.author).clear()
+        await ctx.send('All your notifications have been removed.')
 
     async def check_reminders(self):
-        await asyncio.sleep(60)
-        while self is self.bot.get_cog("Reminder"):
-            to_remove = []
-            for reminder in self.reminders:
-                if reminder["FUTURE"] <= int(time.time()):
-                    try:
-                        for server in self.bot.servers:
-                            if server.id == reminder["server"]:
-                                channel = server.get_channel(reminder["channel"])
-                                break
-                        await self.bot.send_message(channel, discord.User(id=reminder["ID"]).mention + " remember to {}".format(reminder["TEXT"]))
-                    except (discord.errors.Forbidden, discord.errors.NotFound):
-                        to_remove.append(reminder)
-                    except discord.errors.HTTPException:
-                        pass
-                    else:
-                        to_remove.append(reminder)
-            for reminder in to_remove:
-                self.reminders.remove(reminder)
-            if to_remove:
-                fileIO("data/reminder/reminders.json", "save", self.reminders)
-            await asyncio.sleep(5)
-
-
-def check_folders():
-    if not os.path.exists("data/reminder"):
-        print("Creating data/reminder folder...")
-        os.makedirs("data/reminder")
-
-
-def check_files():
-    f = "data/reminder/reminders.json"
-    if not fileIO(f, "check"):
-        print("Creating empty reminders.json...")
-        fileIO(f, "save", [])
-
-
-def setup(bot):
-    global logger
-    check_folders()
-    check_files()
-    logger = logging.getLogger("reminder")
-    if logger.level == 0: # Prevents the logger from being loaded again in case of module reload
-        logger.setLevel(logging.INFO)
-        handler = logging.FileHandler(filename='data/reminder/reminders.log', encoding='utf-8', mode='a')
-        handler.setFormatter(logging.Formatter('%(asctime)s %(message)s', datefmt="[%d/%m/%Y %H:%M]"))
-        logger.addHandler(handler)
-    n = Reminder(bot)
-    loop = asyncio.get_event_loop()
-    loop.create_task(n.check_reminders())
-    bot.add_cog(n)
+        #await sleep(60)
+        await self.bot.wait_until_ready()
+        if not self.check:
+            self.check = True
+        while self.check:
+            user_configs = await self.config.all_users()
+            for user_id, user_config in list(user_configs.items()):
+                for reminder in user_config['reminders']:
+                    user = self.bot.get_user(user_id)
+                    if int(reminder['future']) <= int(time.time()):
+                        chan = self.bot.get_channel(reminder['chan'])
+                        try:
+                            await chan.send(f'{user.mention} remember to {reminder["text"]}')
+                            async with self.config.user(user).reminders() as user_reminders:
+                                user_reminders.remove(reminder)
+                        except (discord.errors.Forbidden, discord.errors.NotFound, discord.errors.HTTPException):
+                            pass
+            await sleep(1)
