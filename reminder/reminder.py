@@ -83,7 +83,6 @@ class Reminder(commands.Cog):
         await ctx.send('All your notifications have been removed.')
 
     async def check_reminders(self):
-        #await sleep(60)
         await self.bot.wait_until_ready()
         if not self.check:
             self.check = True

@@ -48,7 +48,8 @@ Install cog
   * rm  
     *Remove a message from the broadcast*
   * start  
-    *Start the broadcast. Channel, delay and at least one message need to be set.*
+    *Start the broadcast. Channel, delay and at least one message need to be set.*  
+    *Autostarts on cog loading*
   * stop  
     *Stop the broadcast. Happens also if you add or remove messages from the broadcast.*
 
@@ -62,33 +63,4 @@ Install cog
 * forgetme  
   *Removes all your active reminders*
 * remind  
-  *Either reminds you "me" or reminds another user. You can use their actual nick, the loginname with and without the #Numbers or just @Mention.*
-
-## RSS
-**"Forked" from [RSS](https://github.com/tekulvw/Squid-Plugins)**  
-Posts new feed entries in the desired channels. The fork includes filtering for keywords in the title and removing HTML-tags in the description. Needs **BeautifulSoup** now!    
-Install cog  
-`[p]cog install atsp rss`
-
-### Commands
-* add  
-* filter
-* filter_reset  
-* force
-* list
-* remove
-* template  
-
-## Whitelist
-**"Forked" from [Mod](https://github.com/Cog-Creators/Red-DiscordBot/blob/develop/cogs/mod.py#L1131)**
-Allows only the messages containing all of the set keywords. The opposite of the filter command. Keywords are set per channel instead globaly for a whole server. Deleted messages are posted to a specified channel instead of the log.
-Install cog
-`[p]cog install atsp whitelist`
-
-### Commands
-* add  
-  *Adds words to the filter*
-* remove  
-  *Remove words from the filter*
-* set  
-  *Set a channel for the log of deleted messages*
+  *Either reminds you "me" or reminds another user. You can use their actual nick or the loginname.*

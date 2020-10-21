@@ -30,17 +30,9 @@ class Messages(commands.Cog):
         sleep(2)
 
     async def startup(self):
-        #await sleep(60)
         await self.bot.wait_until_ready()
         chan = self.bot.get_channel(await self.config.chan())
         await self.msg(chan)
-
-    async def msg_error(self, text):
-        for chan in await self.bot.get_owner_notification_destinations():
-            try:
-                await chan.send(text)
-            except discord.errors.Forbidden:
-                pass
 
     # Welcome-Code
     @commands.group()
@@ -96,13 +88,13 @@ class Messages(commands.Cog):
         '''Start the broadcast'''
         bc = await self.config.bc()
         if self.bc:
-            await self.msg_error('Broadcast is already running!')
+            await self.bot.send_to_owners('Broadcast is already running!')
             return
         if len(bc) == 0:
-            await self.msg_error('You have no messages set...')
+            await self.bot.send_to_owners('You have no messages set...')
             return
         if not chan:
-            await self.msg_error('You didn\'t set a channel')
+            await self.bot.send_to_owners('You didn\'t set a channel')
             return
         self.bc = True
         while self.bc:
