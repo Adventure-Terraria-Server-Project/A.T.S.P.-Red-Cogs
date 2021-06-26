@@ -1,4 +1,5 @@
 import discord
+from random import choice
 from redbot.core import commands
 from redbot.core import Config
 from redbot.core.utils.chat_formatting import pagify
@@ -13,6 +14,14 @@ class ToDo(commands.Cog):
             'todos': []
         }
         self.config.register_member(**default_member)
+        self.motivational_msgs = [
+            'You did great, keep up!',
+            'OMG!! You are so good :scream:',
+            'You can handle everything!',
+            'I can\'t believe you finished that? :open_mouth:',
+            'I am proud of you, son.',
+            'Nothing can stop you.'
+        ]
 
     @commands.group(pass_context=True, autohelp=False)
     async def todo(self, ctx):
@@ -64,6 +73,6 @@ class ToDo(commands.Cog):
         try:
             async with self.config.member(ctx.author).todos() as member_todos:
                 member_todos.pop(index)
-            await ctx.send('ToDo removed!')
+            await ctx.send(choice(self.motivational_msgs))
         except IndexError:
             await ctx.send('The number was wrong...')

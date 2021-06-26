@@ -107,7 +107,7 @@ class Messages(commands.Cog):
                             break
                 else:
                     break
-        await self.msg_error('Broadcast stopped!')
+        await self.bot.send_to_owners('Broadcast stopped!')
 
     @msgs.command(pass_context=True)
     @checks.admin_or_permissions(administrator=True)

@@ -1,5 +1,5 @@
 # A.T.S.P.-Red-Cogs
-Plugins for the [Discord bot Red](https://github.com/Twentysix26/Red-DiscordBot)  
+Plugins for the [Discord bot Red](https://github.com/Cog-Creators/Red-DiscordBot)  
 These cogs are either self-coded or modified from others. I'll definitely link to source.  
 These cogs are being used on the [A.T.S.P.](https://yamahi.eu) [Discord Server](https://s.yamahi.eu/chat) for several different tasks.
 
@@ -64,3 +64,10 @@ Install cog
   *Removes all your active reminders*
 * remind  
   *Either reminds you "me" or reminds another user. You can use their actual nick or the loginname.*
+
+## NitroBoost
+Shows a list of members who are boosting the server. Also posts if a member starts or stops boosting the server.
+
+### Commands
+* booster  
+  *Shows the list*
