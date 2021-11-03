@@ -71,3 +71,17 @@ Shows a list of members who are boosting the server. Also posts if a member star
 ### Commands
 * booster  
   *Shows the list*
+
+## VoteUtils
+Reaction based commands for raffles and votes
+
+Install cog  
+`[p]cog install atsp voteutils`
+
+### Commands
+* votes  
+  *Shows the messages of the last 20 days with the amount of :thumbsup: emojis as a ranking from the specified channel*
+  * chan  
+    *Set the channel where the messages with the vote are*
+* raffle  
+  *Chooses a random winner from the message with the specified emoji*
