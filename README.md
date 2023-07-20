@@ -23,6 +23,20 @@ Install cog
 * todo rm Index-Number  
     *Remove a ToDo*
 
+## Reminder
+**"Forked" from [RemindMe](https://github.com/Twentysix26/Red-Cogs/)**  
+Reminds you, or someone else after a specific time amount in a channel. Needs **python-dateutil** now!  
+Install cog  
+`[p]cog install atsp reminder`
+
+### Commands
+* forgetme  
+  *Removes all your active reminders*
+* remind  
+  *Either reminds you "me" or reminds another user. You need to use their username.*
+
+# Archive?
+I dont plan to update the below cogs
 ## Messages
 Greet new members and use a broadcast with a delay on a channel  
 Allows only Administrators to use the commands.  
@@ -52,18 +66,6 @@ Install cog
     *Autostarts on cog loading*
   * stop  
     *Stop the broadcast. Happens also if you add or remove messages from the broadcast.*
-
-## Reminder
-**"Forked" from [RemindMe](https://github.com/Twentysix26/Red-Cogs/)**  
-Reminds you, or someone else after a specific time amount in a channel. Needs **python-dateutil** now!  
-Install cog  
-`[p]cog install atsp reminder`
-
-### Commands
-* forgetme  
-  *Removes all your active reminders*
-* remind  
-  *Either reminds you "me" or reminds another user. You can use their actual nick or the loginname.*
 
 ## NitroBoost
 Shows a list of members who are boosting the server. Also posts if a member starts or stops boosting the server.
