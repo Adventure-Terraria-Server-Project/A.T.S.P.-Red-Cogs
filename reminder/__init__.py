@@ -1,6 +1,6 @@
 from .reminder import Reminder
 
 
-def setup(bot):
+async def setup(bot):
     rmd = Reminder(bot)
-    bot.add_cog(rmd)
+    await bot.add_cog(rmd)
