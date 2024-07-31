@@ -6,6 +6,11 @@ These cogs are being used on the [A.T.S.P.](https://yamahi.eu) [Discord Server](
 Install repo  
 `[p]cog repo add atsp https://github.com/Nama/A.T.S.P.-Red-Cogs`  
 
+## ProtonDB
+Get tier from [ProtonDB](https://www.protondb.com)
+
+* pdb
+
 ## ToDo
 **No, these are not things which I have to do. It's a cog!**  
 
