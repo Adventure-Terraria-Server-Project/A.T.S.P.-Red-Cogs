@@ -1,3 +1,4 @@
+from dis import disco
 from random import choice
 import requests
 import discord
@@ -23,6 +24,7 @@ class ProtonDB(commands.Cog):
         self.emojis['borked'] = [':face_vomiting:', ':person_facepalming:', ':skull_crossbones:', ':manual_wheelchair:', ':clown:']
 
     async def message_content(self, igame: str=None, appid: int=None):
+        embed = None
         if not appid:
             if not self.games['time'] or int(self.games['time']) < time() - 3600:
                 self.games['games'] = None
@@ -31,10 +33,10 @@ class ProtonDB(commands.Cog):
                 self.games['games'] = {game['name']: game['appid'] for game in games_raw}
                 self.games['time'] = time()
             games_found = process.extract(igame, self.games['games'].keys(), limit=4, processor=utils.default_process)
-            if games_found:
-                game_found = games_found[0][0]
-            else:
-                return 'Game not found.', None
+            if not games_found:
+                embed = discord.Embed(description=':x: No games found on Steam.')
+                embed.title = igame
+            game_found = games_found[0][0]
             games = [(game[0], self.games['games'][game[0]]) for game in games_found]
             appid = games[0][1]
         else:
@@ -42,20 +44,24 @@ class ProtonDB(commands.Cog):
             game_found = igame
 
         pr = requests.get(self.protondb_url + str(appid) + '.json')
+        tier = None
         try:
             tier = pr.json()['tier']
         except requests.exceptions.JSONDecodeError:
-            return 'Game not on ProtonDB.', None
-        if tier == 'borked':
-            emoji = choice(self.emojis['borked'])
-        else:
-            emoji = self.emojis[tier]
-        embed = discord.Embed(description=f'{emoji} {tier.capitalize()}')
-        embed.title = game_found
-        embed.url = f'https://www.protondb.com/app/{appid}'
-        embed.colour = discord.Colour.red()
-        embed.set_footer(text=f'AppID: {str(appid)}',
-                         icon_url='https://www.protondb.com/sites/protondb/images/favicon-16x16.png')
+            embed = discord.Embed(description=':x: Not on ProtonDB.')
+            embed.title = game_found
+        if tier:
+            if tier == 'borked':
+                emoji = choice(self.emojis['borked'])
+            else:
+                emoji = self.emojis[tier]
+        if not embed:
+            embed = discord.Embed(description=f'{emoji} {tier.capitalize()}')
+            embed.title = game_found
+            embed.url = f'https://www.protondb.com/app/{appid}'
+            embed.colour = discord.Colour.red()
+            embed.set_footer(text=f'AppID: {str(appid)}',
+                             icon_url='https://www.protondb.com/sites/protondb/images/favicon-16x16.png')
         if games:
             other_games = ''
             for i, game in enumerate(games[1:]):
@@ -63,29 +69,19 @@ class ProtonDB(commands.Cog):
             embed.add_field(name='Similar Games', value=other_games)
         return embed, games
 
-
     @commands.Cog.listener()
     async def on_reaction_add(self, reaction, user):
         if reaction.message.author == user:
             return
         if reaction.message.author == self.bot.user:
-            game = self.ogames[reaction.emoji]
+            game = self.ogames.get(reaction.emoji)
             if game:
                 embed, games = await self.message_content(igame=game[0], appid=game[1])
-                if isinstance(embed, str):
-                    # Error
-                    await reaction.message.reply(embed)
-                    return
                 await reaction.message.reply(embed=embed)
-
 
     @commands.group(pass_context=True, autohelp=False)
     async def pdb(self, ctx, *, igame: str):
         embed, games = await self.message_content(igame=igame)
-        if isinstance(embed, str):
-            # Error
-            await ctx.send(embed)
-            return
         msg = await ctx.send(embed=embed)
         for i, game in enumerate(games[1:]):
             self.ogames[self.reactions[i]] = game
