@@ -21,6 +21,7 @@ class ProtonDB(commands.Cog):
         self.emojis['gold'] = ':first_place:'
         self.emojis['silver'] = ':second_place:'
         self.emojis['bronze'] = ':third_place:'
+        self.emojis['pending'] = ':hourglass:'
         self.emojis['borked'] = [':face_vomiting:', ':person_facepalming:', ':skull_crossbones:', ':manual_wheelchair:', ':clown:']
 
     async def message_content(self, igame: str=None, appid: int=None):
